@@ -1,0 +1,68 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # ── Operator System ───────────────────────────────────────────────
+    # OperatorLoader reads YAML/array configs and produces Operator objects.
+    # OperatorManagerFactory wires the loader with the configured operators
+    # file to build an OperatorManager ready for use by parsers.
+
+    Derafu\Query\Operator\OperatorLoader: ~
+
+    Derafu\Query\Operator\OperatorManagerFactory: ~
+
+    Derafu\Query\Operator\OperatorManager:
+        factory: ['@Derafu\Query\Operator\OperatorManagerFactory', 'create']
+        arguments:
+            - '%derafu_query.operators_path%'
+
+    # ── Filter / Path / Expression Parsers ───────────────────────────
+
+    Derafu\Query\Filter\PathParser: ~
+
+    Derafu\Query\Filter\FilterParser:
+        arguments:
+            $manager: '@Derafu\Query\Operator\Contract\OperatorManagerInterface'
+
+    Derafu\Query\Filter\ExpressionParser:
+        arguments:
+            $pathParser: '@Derafu\Query\Filter\Contract\PathParserInterface'
+            $filterParser: '@Derafu\Query\Filter\Contract\FilterParserInterface'
+
+    # ── Bridge: Doctrine ORM Condition Applier ────────────────────────
+    # Applies parsed conditions to a Doctrine ORM QueryBuilder.
+
+    Derafu\Query\Bridge\DoctrineORMQueryBuilderConditionApplier: ~
+
+    # ── API Platform: SmartFilter ─────────────────────────────────────
+    # Accepts Derafu Query expressions as QueryParameter values.
+    # Usage: #[QueryParameter(name: 'x', property: 'x', filter: SmartFilter::class)]
+
+    Derafu\Query\Bridge\ApiPlatform\SmartFilter:
+        arguments:
+            $expressionParser: '@Derafu\Query\Filter\Contract\ExpressionParserInterface'
+
+    # ── Interface Aliases ─────────────────────────────────────────────
+
+    Derafu\Query\Operator\Contract\OperatorLoaderInterface:
+        alias: Derafu\Query\Operator\OperatorLoader
+
+    Derafu\Query\Operator\Contract\OperatorManagerFactoryInterface:
+        alias: Derafu\Query\Operator\OperatorManagerFactory
+
+    Derafu\Query\Operator\Contract\OperatorManagerInterface:
+        alias: Derafu\Query\Operator\OperatorManager
+
+    Derafu\Query\Filter\Contract\PathParserInterface:
+        alias: Derafu\Query\Filter\PathParser
+
+    Derafu\Query\Filter\Contract\FilterParserInterface:
+        alias: Derafu\Query\Filter\FilterParser
+
+    Derafu\Query\Filter\Contract\ExpressionParserInterface:
+        alias: Derafu\Query\Filter\ExpressionParser
+
+    Derafu\Query\Bridge\Contract\QueryBuilderConditionApplierInterface:
+        alias: Derafu\Query\Bridge\DoctrineORMQueryBuilderConditionApplier
