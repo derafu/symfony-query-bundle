@@ -22,14 +22,11 @@ services:
 
     Derafu\Query\Filter\PathParser: ~
 
-    Derafu\Query\Filter\FilterParser:
-        arguments:
-            $manager: '@Derafu\Query\Operator\Contract\OperatorManagerInterface'
+    Derafu\Query\Filter\FilterParser: ~
 
-    Derafu\Query\Filter\ExpressionParser:
-        arguments:
-            $pathParser: '@Derafu\Query\Filter\Contract\PathParserInterface'
-            $filterParser: '@Derafu\Query\Filter\Contract\FilterParserInterface'
+    Derafu\Query\Filter\ExpressionParser: ~
+
+    Derafu\Query\Filter\CompositeExpressionParser: ~
 
     # ── Bridge: Doctrine ORM Condition Applier ────────────────────────
     # Applies parsed conditions to a Doctrine ORM QueryBuilder.
@@ -41,8 +38,8 @@ services:
     # Usage: #[QueryParameter(name: 'x', property: 'x', filter: SmartFilter::class)]
 
     Derafu\Query\Bridge\ApiPlatform\SmartFilter:
-        arguments:
-            $expressionParser: '@Derafu\Query\Filter\Contract\ExpressionParserInterface'
+        tags:
+            - { name: api_platform.filter }
 
     # ── Interface Aliases ─────────────────────────────────────────────
 
@@ -63,6 +60,9 @@ services:
 
     Derafu\Query\Filter\Contract\ExpressionParserInterface:
         alias: Derafu\Query\Filter\ExpressionParser
+
+    Derafu\Query\Filter\Contract\CompositeExpressionParserInterface:
+        alias: Derafu\Query\Filter\CompositeExpressionParser
 
     Derafu\Query\Bridge\Contract\QueryBuilderConditionApplierInterface:
         alias: Derafu\Query\Bridge\DoctrineORMQueryBuilderConditionApplier
