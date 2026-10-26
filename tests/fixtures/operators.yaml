@@ -1,0 +1,10 @@
+types:
+    standard:
+        name: Standard
+        description: Standard comparison
+operators:
+    'eq:':
+        type: standard
+        name: Equality
+        description: Application equality operator
+        sql: '{{column}} = {{value}}'

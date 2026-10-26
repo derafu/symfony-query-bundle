@@ -1,0 +1,19 @@
+resources:
+    Derafu\TestsQueryBundle\Fixture\Entity\Product:
+        operations:
+            ApiPlatform\Metadata\Get: ~
+            ApiPlatform\Metadata\GetCollection:
+                uriTemplate: /products
+                parameters:
+                    price:
+                        property: price
+                        schema: { type: string }
+                        filter: Derafu\Query\Bridge\ApiPlatform\SmartFilter
+                    status:
+                        property: status
+                        schema: { type: string }
+                        filter: Derafu\Query\Bridge\ApiPlatform\SmartFilter
+                    filter:
+                        property: __derafu_smart_filter
+                        schema: { type: string }
+                        filter: Derafu\Query\Bridge\ApiPlatform\SmartFilter

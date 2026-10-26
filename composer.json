@@ -21,19 +21,30 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Derafu\\TestsQueryBundle\\": "tests/src/"
+            "Derafu\\TestsQueryBundle\\": "tests/src/",
+            "Derafu\\TestsQueryBundle\\Fixture\\": "tests/fixtures/"
         }
     },
     "require": {
         "php": "^8.5",
-        "symfony/framework-bundle": "^8.0",
-        "derafu/query": "dev-main"
+        "derafu/array": "dev-main",
+        "derafu/query": "dev-main",
+        "doctrine/orm": "^3.7",
+        "symfony/config": "^8.1",
+        "symfony/dependency-injection": "^8.1",
+        "symfony/framework-bundle": "^8.1",
+        "symfony/http-kernel": "^8.1",
+        "symfony/yaml": "^8.1"
     },
     "require-dev": {
         "ext-xdebug": "*",
-        "friendsofphp/php-cs-fixer": "^3.94",
-        "phpstan/phpstan": "^1.12",
-        "phpunit/phpunit": "^11.5"
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "^13.4",
+        "doctrine/doctrine-bundle": "^3.3",
+        "derafu/symfony-translation-bundle": "dev-main",
+        "ext-pdo_sqlite": "*",
+        "api-platform/core": "^4.4"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",
@@ -44,5 +55,8 @@
         "phpstan-export": "vendor/bin/phpstan analyse --configuration=phpstan.neon --level 9 --generate-baseline"
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "suggest": {
+        "api-platform/core": "Registers SmartFilter for API Platform Doctrine ORM collection filtering when installed."
+    }
 }

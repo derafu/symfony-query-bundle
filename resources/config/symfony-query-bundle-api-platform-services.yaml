@@ -1,0 +1,7 @@
+services:
+    Derafu\Query\Bridge\ApiPlatform\SmartFilter:
+        autowire: true
+        autoconfigure: true
+        public: false
+        tags:
+            - { name: api_platform.filter }

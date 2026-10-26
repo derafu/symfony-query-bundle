@@ -3,7 +3,8 @@
     backupGlobals="true"
     cacheDirectory="var/cache/phpunit"
     processIsolation="false"
-    executionOrder="depends,defects"
+    executionOrder="defects"
+    resolveDependencies="true"
     colors="true"
     testdox="true"
     requireCoverageMetadata="true"
@@ -29,7 +30,7 @@
     </source>
     <testsuites>
         <testsuite name="unit">
-            <directory>tests</directory>
+            <directory>tests/src</directory>
         </testsuite>
     </testsuites>
     <coverage

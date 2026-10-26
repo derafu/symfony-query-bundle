@@ -27,14 +27,17 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: mbstring, xdebug
+          extensions: intl, mbstring, pdo_sqlite, xdebug
           tools: composer
 
       - name: Display PHP version
         run: php -v
 
       - name: Install Dependencies
-        run: composer install --no-progress --no-suggest --prefer-dist
+        run: composer install --no-progress --prefer-dist
+
+      - name: Validate Composer metadata
+        run: composer validate --strict
 
       - name: Run PHP Coding Standards Fixer
         run: vendor/bin/php-cs-fixer fix -v --dry-run --diff --config=php-cs-fixer.php
@@ -42,18 +45,41 @@ jobs:
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=1G
 
-      # - name: Run PHPUnit
-      #   run: XDEBUG_MODE=coverage vendor/bin/phpunit --configuration=phpunit.xml
+      - name: Run PHPUnit
+        run: XDEBUG_MODE=coverage vendor/bin/phpunit --configuration=phpunit.xml
 
-      # - name: Upload PHPUnit result report
-      #   if: failure()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: tests-testdox-php_${{ matrix.php-version }}.txt
-      #     path: var/tests-testdox.txt
+      - name: Upload PHPUnit result report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-testdox-php_${{ matrix.php-version }}.txt
+          path: var/tests-testdox.txt
 
-      # - name: Upload Coverage Report
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: tests-coverage-php_${{ matrix.php-version }}.txt
-      #     path: var/tests-coverage.txt
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-coverage-php_${{ matrix.php-version }}.txt
+          path: var/tests-coverage.txt
+
+  without-api-platform:
+    name: Tests without API Platform
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: intl, mbstring, pdo_sqlite, xdebug
+          tools: composer
+
+      - name: Install dependencies without API Platform
+        run: |
+          composer remove --dev api-platform/core --no-update
+          composer update --no-progress --prefer-dist
+
+      - name: Test the application without API Platform
+        run: XDEBUG_MODE=coverage vendor/bin/phpunit --configuration=phpunit.xml --no-coverage

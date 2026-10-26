@@ -12,25 +12,45 @@ declare(strict_types=1);
 
 namespace Derafu\QueryBundle;
 
-use Derafu\QueryBundle\DependencyInjection\QueryExtension;
-use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use ApiPlatform\Doctrine\Orm\Filter\FilterInterface;
+use Composer\InstalledVersions;
+use Derafu\Array\ArrayReader;
+use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
- * Derafu Query Bundle — Symfony integration for derafu/query.
- *
- * Registers the derafu/query path-based query system as Symfony services:
- * operator manager, filter/path/expression parsers, SQL query builder,
- * Doctrine engine, and bridge condition appliers for Doctrine ORM and DBAL.
+ * Integrates Query's operators, parsers and bridges with Symfony services.
  */
-final class QueryBundle extends Bundle
+final class QueryBundle extends AbstractBundle
 {
-    public function getContainerExtension(): ?ExtensionInterface
-    {
-        if ($this->extension === null) {
-            $this->extension = new QueryExtension();
-        }
+    protected string $extensionAlias = 'derafu_query';
 
-        return $this->extension ?: null;
+    public function configure(DefinitionConfigurator $definition): void
+    {
+        $definition->rootNode()
+            ->children()
+                ->scalarNode('operators_path')
+                    ->info('Path to an operators YAML file. Defaults to the file supplied by derafu/query.')
+                    ->defaultNull()
+                ->end()
+            ->end()
+        ;
+    }
+
+    /** @param array<string, mixed> $config */
+    public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void
+    {
+        $packagePath = InstalledVersions::getInstallPath('derafu/query');
+        $container->setParameter(
+            'derafu_query.operators_path',
+            ArrayReader::fromArray($config)->getString('operators_path') ?? $packagePath . '/resources/operators.yaml',
+        );
+        $configurator->import($packagePath . '/resources/config/query-services.yaml');
+        $configurator->import('../resources/config/symfony-query-bundle-services.yaml');
+        if (interface_exists(FilterInterface::class)) {
+            $configurator->import('../resources/config/symfony-query-bundle-api-platform-services.yaml');
+        }
     }
 }

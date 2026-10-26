@@ -4,7 +4,7 @@ services:
         autoconfigure: true
         public: false
 
-    # ── Operator System ───────────────────────────────────────────────
+    # Operators
     # OperatorLoader reads YAML/array configs and produces Operator objects.
     # OperatorManagerFactory wires the loader with the configured operators
     # file to build an OperatorManager ready for use by parsers.
@@ -18,7 +18,7 @@ services:
         arguments:
             - '%derafu_query.operators_path%'
 
-    # ── Filter / Path / Expression Parsers ───────────────────────────
+    # Parsers
 
     Derafu\Query\Filter\PathParser: ~
 
@@ -28,20 +28,12 @@ services:
 
     Derafu\Query\Filter\CompositeExpressionParser: ~
 
-    # ── Bridge: Doctrine ORM Condition Applier ────────────────────────
+    # Doctrine ORM bridge
     # Applies parsed conditions to a Doctrine ORM QueryBuilder.
 
     Derafu\Query\Bridge\DoctrineORMQueryBuilderConditionApplier: ~
 
-    # ── API Platform: SmartFilter ─────────────────────────────────────
-    # Accepts Derafu Query expressions as QueryParameter values.
-    # Usage: #[QueryParameter(name: 'x', property: 'x', filter: SmartFilter::class)]
-
-    Derafu\Query\Bridge\ApiPlatform\SmartFilter:
-        tags:
-            - { name: api_platform.filter }
-
-    # ── Interface Aliases ─────────────────────────────────────────────
+    # Interface aliases
 
     Derafu\Query\Operator\Contract\OperatorLoaderInterface:
         alias: Derafu\Query\Operator\OperatorLoader
