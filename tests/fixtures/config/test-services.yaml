@@ -1,0 +1,11 @@
+services:
+    logger:
+        class: Psr\Log\NullLogger
+
+    test.entity_manager:
+        alias: Doctrine\ORM\EntityManagerInterface
+        public: true
+
+    test.translator:
+        alias: translator
+        public: true

@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace Derafu\TestsQueryBundle;
 
-use Composer\InstalledVersions;
 use Derafu\Array\Exception\TypeMismatchException;
 use Derafu\Query\Bridge\ApiPlatform\SmartFilter;
 use Derafu\Query\Bridge\Contract\QueryBuilderConditionApplierInterface;
@@ -20,12 +19,8 @@ use Derafu\Query\Bridge\DoctrineORMQueryBuilderConditionApplier;
 use Derafu\Query\Filter\Contract\CompositeExpressionParserInterface;
 use Derafu\Query\Filter\Contract\ExpressionParserInterface;
 use Derafu\Query\Filter\Contract\FilterParserInterface;
-use Derafu\Query\Filter\Contract\PathParserInterface;
-use Derafu\Query\Filter\ExpressionParser;
-use Derafu\Query\Filter\FilterParser;
-use Derafu\Query\Filter\PathParser;
 use Derafu\Query\Operator\Contract\OperatorManagerInterface;
-use Derafu\Query\Operator\OperatorManager;
+use Derafu\Query\Operator\OperatorManagerFactory;
 use Derafu\QueryBundle\QueryBundle;
 use Derafu\TestsQueryBundle\Fixture\Entity\Product;
 use Derafu\TestsQueryBundle\Fixture\Kernel;
@@ -149,7 +144,7 @@ final class ServicesTest extends TestCase
         self::assertSame($extension, $bundle->getContainerExtension());
     }
 
-    public function testEveryPackageServiceAndAliasCanBeConstructed(): void
+    public function testEveryImportedPackageServiceCanBeConstructed(): void
     {
         $this->boot();
         $container = $this->container();
@@ -158,11 +153,7 @@ final class ServicesTest extends TestCase
                 $container->get($id);
             }
         }
-        self::assertSame($this->service(OperatorManagerInterface::class), $this->service(OperatorManager::class));
-        self::assertSame($this->service(ExpressionParserInterface::class), $this->service(ExpressionParser::class));
-        self::assertSame($this->service(FilterParserInterface::class), $this->service(FilterParser::class));
-        self::assertSame($this->service(PathParserInterface::class), $this->service(PathParser::class));
-        self::assertSame($this->service(QueryBuilderConditionApplierInterface::class), $this->service(DoctrineORMQueryBuilderConditionApplier::class));
+        self::assertInstanceOf(DoctrineORMQueryBuilderConditionApplier::class, $this->service(QueryBuilderConditionApplierInterface::class));
     }
 
     /** @return iterable<string, array{array<string, mixed>}> */
@@ -177,7 +168,7 @@ final class ServicesTest extends TestCase
     public function testDefaultOperatorsAreAvailableWithOmittedOrNullPaths(array $config): void
     {
         $this->boot($config);
-        self::assertSame(InstalledVersions::getInstallPath('derafu/query') . '/resources/operators.yaml', $this->container()->getParameter('derafu_query.operators_path'));
+        self::assertSame(OperatorManagerFactory::DEFAULT_OPERATORS_PATH, $this->container()->getParameter('derafu.query.operators.path'));
         self::assertSame('=', $this->service(OperatorManagerInterface::class)->getOperator('=')->getSymbol());
         $condition = $this->service(ExpressionParserInterface::class)->parse('price?>100');
         self::assertSame('price', $condition->getPath()->getLastSegment()->getName());
@@ -188,7 +179,7 @@ final class ServicesTest extends TestCase
     {
         $path = dirname(__DIR__) . '/fixtures/operators.yaml';
         $this->boot(['operators_path' => $path]);
-        self::assertSame($path, $this->container()->getParameter('derafu_query.operators_path'));
+        self::assertSame($path, $this->container()->getParameter('derafu.query.operators.path'));
         self::assertSame(['eq:'], array_keys($this->service(OperatorManagerInterface::class)->getOperators()));
         $query = $this->query($this->seed());
         $condition = $this->service(ExpressionParserInterface::class)->parse('name?eq:Notebook');
@@ -201,6 +192,18 @@ final class ServicesTest extends TestCase
         $this->boot();
         $query = $this->query($this->seed());
         $condition = $this->service(CompositeExpressionParserInterface::class)->parse('price?>100 && status?=active');
+        $this->service(QueryBuilderConditionApplierInterface::class)->apply($query, $condition);
+        self::assertSame([['id' => 1]], $query->getQuery()->getScalarResult());
+    }
+
+    public function testCustomOperatorPathsResolveApplicationParameters(): void
+    {
+        $path = $this->project . '/operators.yaml';
+        (new Filesystem())->copy(dirname(__DIR__) . '/fixtures/operators.yaml', $path);
+        $this->boot(['operators_path' => '%kernel.project_dir%/operators.yaml']);
+        self::assertSame(realpath($path), $this->container()->getParameter('derafu.query.operators.path'));
+        $query = $this->query($this->seed());
+        $condition = $this->service(ExpressionParserInterface::class)->parse('name?eq:Notebook');
         $this->service(QueryBuilderConditionApplierInterface::class)->apply($query, $condition);
         self::assertSame([['id' => 1]], $query->getQuery()->getScalarResult());
     }
@@ -316,6 +319,24 @@ final class ServicesTest extends TestCase
         self::assertSame([
             ['id' => 1, 'name' => 'Notebook', 'price' => 120, 'status' => 'active'],
             ['id' => 2, 'name' => 'Mouse', 'price' => 25, 'status' => 'active'],
+        ], json_decode($content, true, flags: JSON_THROW_ON_ERROR));
+    }
+
+    public function testApiPlatformUsesTheSameCustomOperatorCatalogue(): void
+    {
+        if (!interface_exists('ApiPlatform\\Doctrine\\Orm\\Filter\\FilterInterface')) {
+            self::markTestSkipped('API Platform is optional and is not installed.');
+        }
+        $this->boot(['operators_path' => dirname(__DIR__) . '/fixtures/operators.yaml']);
+        $this->seed();
+        self::assertNotNull($this->kernel);
+        $request = Request::create('/api/products', 'GET', ['price' => 'eq:120'], server: ['HTTP_ACCEPT' => 'application/json']);
+        $response = $this->kernel->handle($request);
+        $content = $response->getContent();
+        self::assertIsString($content);
+        self::assertSame(200, $response->getStatusCode(), $content);
+        self::assertSame([
+            ['id' => 1, 'name' => 'Notebook', 'price' => 120, 'status' => 'active'],
         ], json_decode($content, true, flags: JSON_THROW_ON_ERROR));
     }
 }

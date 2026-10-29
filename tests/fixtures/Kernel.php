@@ -16,12 +16,12 @@ use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Derafu\QueryBundle\QueryBundle;
 use Derafu\TranslationBundle\TranslationBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
-use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
@@ -36,7 +36,11 @@ final class Kernel extends BaseKernel
         parent::__construct('test', true);
     }
 
-    /** @return iterable<BundleInterface> */
+    /**
+     * {@inheritDoc}
+     *
+     * @return iterable<BundleInterface>
+     */
     public function registerBundles(): iterable
     {
         yield new FrameworkBundle();
@@ -48,9 +52,14 @@ final class Kernel extends BaseKernel
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function registerContainerConfiguration(LoaderInterface $loader): void
     {
         $loader->load(function (ContainerBuilder $container): void {
+            $services = new YamlFileLoader($container, new FileLocator(__DIR__ . '/config'));
+            $services->load('test-services.yaml');
             $framework = [
                 'secret' => 'query-bundle-test-secret',
                 'default_locale' => 'es',
@@ -71,7 +80,7 @@ final class Kernel extends BaseKernel
                     'enable_docs' => false,
                     'enable_entrypoint' => false,
                 ]);
-                $container->setAlias('test.filter_locator', 'api_platform.filter_locator')->setPublic(true);
+                $services->load('api-platform-test-services.yaml');
             }
             $container->loadFromExtension('framework', $framework);
             $container->loadFromExtension('doctrine', [
@@ -84,13 +93,12 @@ final class Kernel extends BaseKernel
                 ]]],
             ]);
             $container->loadFromExtension('derafu_query', $this->queryConfig);
-            $container->register('test.logger', NullLogger::class);
-            $container->setAlias('logger', 'test.logger');
-            $container->setAlias('test.entity_manager', EntityManagerInterface::class)->setPublic(true);
-            $container->setAlias('test.translator', 'translator')->setPublic(true);
             // Keep package services reachable so compilation cannot remove a
             // broken definition merely because a test did not request it yet.
             $container->addCompilerPass(new class () implements CompilerPassInterface {
+                /**
+                 * {@inheritDoc}
+                 */
                 public function process(ContainerBuilder $container): void
                 {
                     foreach ($container->getDefinitions() as $id => $definition) {
@@ -108,16 +116,25 @@ final class Kernel extends BaseKernel
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getProjectDir(): string
     {
         return $this->project;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getCacheDir(): string
     {
         return $this->project . '/var/cache';
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getLogDir(): string
     {
         return $this->project . '/var/log';

@@ -27,6 +27,9 @@ final class QueryBundle extends AbstractBundle
 {
     protected string $extensionAlias = 'derafu_query';
 
+    /**
+     * {@inheritDoc}
+     */
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -39,18 +42,23 @@ final class QueryBundle extends AbstractBundle
         ;
     }
 
-    /** @param array<string, mixed> $config */
+    /**
+     * {@inheritDoc}
+     *
+     * @param array<string, mixed> $config
+     */
     public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void
     {
         $packagePath = InstalledVersions::getInstallPath('derafu/query');
-        $container->setParameter(
-            'derafu_query.operators_path',
-            ArrayReader::fromArray($config)->getString('operators_path') ?? $packagePath . '/resources/operators.yaml',
-        );
-        $configurator->import($packagePath . '/resources/config/query-services.yaml');
-        $configurator->import('../resources/config/symfony-query-bundle-services.yaml');
+        $configurator->import($packagePath . '/resources/config/query-bridge-doctrine-orm-services.yaml');
+
+        // Apply the application's override after importing Query's defaults.
+        $operatorsPath = ArrayReader::fromArray($config)->getString('operators_path');
+        if ($operatorsPath !== null) {
+            $container->setParameter('derafu.query.operators.path', $operatorsPath);
+        }
         if (interface_exists(FilterInterface::class)) {
-            $configurator->import('../resources/config/symfony-query-bundle-api-platform-services.yaml');
+            $configurator->import('../resources/config/symfony-query-bundle-services.yaml');
         }
     }
 }

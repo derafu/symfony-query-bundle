@@ -1,0 +1,4 @@
+services:
+    test.filter_locator:
+        alias: api_platform.filter_locator
+        public: true
